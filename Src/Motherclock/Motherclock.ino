@@ -5,6 +5,15 @@
 #include <NtpClientLib.h>
 
 
+#include <Adafruit_NeoPixel.h>
+
+#define NUM_LEDS 60
+#define PIXEL_PIN D4
+#define MAX_LED_BRIGHTNESS 10
+
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
+
+
 extern "C" {
 #include "user_interface.h"
 }
@@ -39,11 +48,12 @@ void showCurrentStatus()
   Serial.print(" - NTP Time: ");
   Serial.print(NTP.getTimeDateString()); Serial.print(" ");
   Serial.print(NTP.isSummerTime() ? "Summer Time. " : "Winter Time. ");
-  Serial.print("WiFi is ");
-  Serial.print(WiFi.isConnected() ? "connected" : "not connected"); Serial.print(". ");
-  Serial.print("Uptime: ");
-  Serial.print(NTP.getUptimeString()); Serial.print(" since ");
-  Serial.println(NTP.getTimeDateString(NTP.getFirstSync()).c_str());
+  //  Serial.print("WiFi is ");
+  //  Serial.print(WiFi.isConnected() ? "connected" : "not connected"); Serial.print(". ");
+  //  Serial.print("Uptime: ");
+  //  Serial.print(NTP.getUptimeString()); Serial.print(" since ");
+  //  Serial.print(NTP.getTimeDateString(NTP.getFirstSync()).c_str());
+  Serial.println();
 }
 
 
@@ -79,7 +89,10 @@ void processSyncEvent(NTPSyncEvent_t ntpEvent) {
   }
   else {
     Serial.print("Got NTP time: ");
-    Serial.println(NTP.getTimeDateString(NTP.getLastNTPSync()));
+    Serial.print (NTP.getTimeDateString(NTP.getLastNTPSync()));
+    Serial.print ( " - " );
+    Serial.print (NTP.getTimeDateString());
+    Serial.println ();
     rtc.adjust ( now() );
     showCurrentStatus();
     if ( rtc.now().second() > 0 )
@@ -252,6 +265,12 @@ void setup() {
     Serial.println("RTC not initialized");
     setCurrentStep ( 1 );
   }
+
+
+  strip.begin();
+  strip.setBrightness(MAX_LED_BRIGHTNESS);
+  strip.show(); // Initialize all pixels to 'off'
+
 }
 
 
@@ -266,25 +285,10 @@ void loop()
   }
 
 
-  if ((millis() - last) > 1000) {
+  if ((millis() - last) > 10000) {
     last = millis();
-
     showCurrentStatus();
-
   }
-
-
-  //
-  //  if ( step == 0 )
-  //  {
-  //    DateTime now = rtc.now();
-  //    if ( now.second() > 0 )
-  //    {
-  //      digitalWrite(BUILTIN_LED1, LOW);
-  //      delay ( 10 );
-  //      digitalWrite(BUILTIN_LED1, HIGH);
-  //    }
-  //  }
 
   if ( step == 1 )
   {
@@ -301,10 +305,20 @@ void loop()
     bool v = digitalRead ( MAX);
     digitalWrite ( MAX, !v);
 
-    delay ( timeToSleep * 1000 );
+    //delay ( timeToSleep * 1000 );
   }
 
-  delay(0);
+  delay(100);
+
+  static int last2 = 0;
+  if ((millis() - last2) > 1000) {
+    last2 = millis();
+    DateTime now = rtc.now();
+    int dot = now.second();
+    strip.setPixelColor(dot, 0, 0, 255);
+    strip.show();
+    strip.setPixelColor(dot, 0, 0, 0);
+  }
 }
 
 

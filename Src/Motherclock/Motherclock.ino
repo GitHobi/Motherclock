@@ -4,15 +4,12 @@
 #include <TimeLib.h>
 #include <NtpClientLib.h>
 
-
-#include <Adafruit_NeoPixel.h>
-
+#define FASTLED_ESP8266_NODEMCU_PIN_ORDER
+#include <FastLED.h>
 #define NUM_LEDS 60
-#define PIXEL_PIN D4
-#define MAX_LED_BRIGHTNESS 10
-
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
-
+#define PIXEL_PIN 4
+#define MAX_LED_BRIGHTNESS 8
+CRGB leds[NUM_LEDS];
 
 extern "C" {
 #include "user_interface.h"
@@ -266,11 +263,17 @@ void setup() {
     setCurrentStep ( 1 );
   }
 
-
-  strip.begin();
-  strip.setBrightness(MAX_LED_BRIGHTNESS);
-  strip.show(); // Initialize all pixels to 'off'
-
+  FastLED.addLeds<WS2812B, PIXEL_PIN>(leds, NUM_LEDS);
+  FastLED.setCorrection(TypicalSMD5050);
+  FastLED.setBrightness( MAX_LED_BRIGHTNESS );
+//  for ( uint8_t i = 0; i<20; i++ )
+//  {
+//   leds[00+i] = CRGB( 255, 0, 0);
+//   leds[20+i] = CRGB( 0, 255, 0);
+//   leds[40+i] = CRGB( 0, 0, 255);
+//  }
+  fill_rainbow( &(leds[0]), 20 /*led count*/, 20 /*starting hue*/, 12 /* deltahue */);
+  FastLED.show(); 
 }
 
 
@@ -311,13 +314,30 @@ void loop()
   delay(100);
 
   static int last2 = 0;
-  if ((millis() - last2) > 1000) {
+  if ((millis() - last2) > 1*1000) {
     last2 = millis();
-    DateTime now = rtc.now();
-    int dot = now.second();
-    strip.setPixelColor(dot, 0, 0, 255);
+#ifdef ADAFRUIT
+    uint32_t color0 = strip.getPixelColor(0);
+    for ( uint8_t i=0;i<NUM_LEDS-1;i++)
+    {
+      uint32_t color = strip.getPixelColor(i+1);
+      strip.setPixelColor(i, 0,0,0);
+      strip.setPixelColor(i, color);
+    }
+    strip.setPixelColor(59, 0,0,0);
+    strip.setPixelColor(59, color0);
     strip.show();
-    strip.setPixelColor(dot, 0, 0, 0);
+#endif    
+
+  CRGB color0 = leds[0];
+    for ( uint8_t i=0;i<NUM_LEDS-1;i++)
+    {
+      CRGB color = leds[i+1];
+      leds[i] = color;
+    }
+    leds[59] = color0;
+    FastLED.show();
+  
   }
 }
 
